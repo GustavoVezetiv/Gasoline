@@ -1,4 +1,4 @@
-import { HomeList } from '@/components/home-list'
+import { HomeSummary } from '@/components/home-summary'
 import { homeData } from '@/lib/data'
 import { serverClient } from '@/lib/supabase/server'
 
@@ -9,5 +9,5 @@ export default async function HomePage() {
   let data
   try { data = await homeData(auth!.claims.sub) }
   catch { return <main className="shell page"><h1>Não foi possível carregar os postos</h1><p className="mt-4 text-neutral-600">Verifique a conexão e tente atualizar a página.</p></main> }
-  return <HomeList {...data} />
+  return <HomeSummary {...data} />
 }

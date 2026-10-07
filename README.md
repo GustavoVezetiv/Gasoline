@@ -4,7 +4,7 @@ Aplicação privada para um pequeno grupo acompanhar preços de combustíveis e 
 
 ## Stack e arquitetura
 
-- Next.js 16 App Router, React 19, TypeScript e Tailwind CSS 4; hospedagem preparada para Vercel.
+- Next.js 16 App Router, React 19, TypeScript e Tailwind CSS 4; hospedagem preparada para Vercel. Leaflet renderiza o mapa no cliente com tiles do OpenStreetMap.
 - Supabase Auth, PostgreSQL com RLS e Storage privado. O navegador usa apenas a chave **publishable**. Não há service role no código.
 - `src/app`: páginas, proteção de sessão e manifest PWA. `src/components`: interface e formulários. `src/lib`: acesso a dados, geolocalização, preço, foto e OCR.
 - `supabase/migrations`: esquema versionado, grants e políticas. `supabase/seed.sql`: postos fictícios exclusivos do ambiente local.
@@ -17,7 +17,7 @@ Aplicação privada para um pequeno grupo acompanhar preços de combustíveis e 
 4. Copie `.env.example` para `.env.local`. Preencha `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` com os valores de `npx supabase status` ou do painel do projeto.
 5. `npm run dev` e abra `http://localhost:3000`.
 
-O seed cria seis postos fictícios perto de Cuiabá. Após criar um usuário local, execute `supabase/seed.sql` novamente no SQL Editor local para adicionar seis preços de demonstração. O seed não é aplicado em produção por `supabase db push`; cadastre os postos reais manualmente no SQL Editor ou em uma migration própria.
+O seed cria seis postos fictícios perto de Cuiabá. Após criar um usuário local, execute `supabase/seed.sql` novamente no SQL Editor local para adicionar histórico de 90 dias dos quatro combustíveis. O seed não é aplicado em produção por `supabase db push`; cadastre os postos reais manualmente no SQL Editor ou em uma migration própria.
 
 ## Supabase hospedado
 
@@ -31,7 +31,8 @@ Para produção, configure as mesmas duas variáveis de `.env.example` no projet
 
 ## Uso e decisões
 
-- Cada atualização insere novos `price_reports`; `latest_prices` usa `DISTINCT ON` e `security_invoker`, com índice `(station_id, fuel_type, created_at DESC, id DESC)`.
+- Cada atualização insere novos `price_reports`; `latest_prices` usa `DISTINCT ON` e `security_invoker`, com índice `(station_id, fuel_type, created_at DESC, id DESC)`. A preferência de combustível fica somente no `localStorage` do dispositivo e é aplicada em resumo, explorador, mapa, detalhes e histórico.
+- O mapa é carregado somente no navegador para preservar a renderização do App Router e usa os tiles públicos do OpenStreetMap com a atribuição exigida. Antes de abrir o produto para um volume maior, revise a [política de uso dos tiles](https://operations.osmfoundation.org/policies/tiles/) e adote um provedor compatível se necessário.
 - Distância é Haversine em linha reta. O custo estimado soma litros abastecidos e combustível para ida e volta, usando consumo e litros do perfil. Sem esses dados ou sem localização, a ordenação mostra menor preço, sem inventar um custo.
 - Localização é pedida por ação do usuário e é opcional na atualização. Se houver um posto a menos de 300 m, ele é sugerido e pode ser trocado.
 - A foto é reduzida a até 1600 px e 2 MiB no navegador. WebP é preferido; JPEG é usado quando WebP não está disponível. OCR via Tesseract.js é carregado somente sob demanda. Os candidatos nunca são salvos sem confirmação do formulário.

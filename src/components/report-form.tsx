@@ -7,9 +7,9 @@ import { browserClient } from '@/lib/supabase/browser'
 import { getLocation, haversineKm, type Coordinates } from '@/lib/geo'
 import { parsePrice } from '@/lib/pricing'
 import { compressPhoto } from '@/lib/photo'
+import { fuelOptions } from '@/lib/fuels'
 import type { FuelType, Station } from '@/lib/types'
 
-const fuels: { key: FuelType; label: string }[] = [{ key: 'gasoline', label: 'Gasolina comum' }, { key: 'ethanol', label: 'Etanol' }, { key: 'diesel', label: 'Diesel' }, { key: 'diesel_s10', label: 'Diesel S10' }]
 export function ReportForm({ stations, initialStation, loadError = false }: { stations: Station[]; initialStation?: string; loadError?: boolean }) {
   const router = useRouter()
   const [stationId, setStationId] = useState(initialStation ?? '')
@@ -52,7 +52,7 @@ export function ReportForm({ stations, initialStation, loadError = false }: { st
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setError('')
     if (!selectedStationId) return setError('Escolha um posto.')
-    const entered = fuels.map(({ key }) => ({ key, raw: values[key].trim(), price: parsePrice(values[key]) })).filter(({ raw }) => raw)
+    const entered = fuelOptions.map(({ value }) => ({ key: value, raw: values[value].trim(), price: parsePrice(values[value]) })).filter(({ raw }) => raw)
     if (!entered.length) return setError('Informe ao menos um preço.')
     if (entered.some(({ price }) => price === null)) return setError('Use preços entre R$ 1,00 e R$ 20,00, com 2 ou 3 casas decimais.')
     setBusy(true)
@@ -81,12 +81,12 @@ export function ReportForm({ stations, initialStation, loadError = false }: { st
     <form onSubmit={submit} className="form-stack">
       <label htmlFor="station">Posto</label><select id="station" required value={selectedStationId} onChange={(e) => setStationId(e.target.value)}><option value="">Selecione um posto</option>{stations.map((s) => <option value={s.id} key={s.id}>{s.name}</option>)}</select>
       <button className="inline-action" type="button" onClick={locate}><LocateFixed size={18} />{locationStatus}</button>
-      <div className="form-divider" /><div className="form-label-row"><strong>Preços por litro</strong><span>Preencha os que souber</span></div>
-      {fuels.map(({ key, label }) => <div className="price-field" key={key}><label htmlFor={key}>{label}</label><div><span>R$</span><input id={key} inputMode="decimal" autoComplete="off" placeholder="0,00" value={values[key]} onChange={(e) => setValues({ ...values, [key]: e.target.value })} /></div></div>)}
-      <div className="form-divider" /><strong>Foto da placa <span className="optional">opcional</span></strong><label className="photo-picker" htmlFor="camera"><Camera size={21} /><span>{photoName || 'Tirar foto'}</span></label><input className="visually-hidden" id="camera" type="file" accept="image/*" capture="environment" onChange={(e) => void choosePhoto(e.target.files?.[0])} /><label className="photo-picker" htmlFor="gallery"><span>Escolher da galeria</span></label><input className="visually-hidden" id="gallery" type="file" accept="image/*" onChange={(e) => void choosePhoto(e.target.files?.[0])} />
-      {photo && <><button type="button" className="inline-action" onClick={() => { setPhoto(null); setPhotoName(''); setCandidates([]) }}>Remover foto</button><button type="button" className="ocr-button" onClick={runOcr}><Sparkles size={17} /> Buscar valores na foto</button></>}
+      <div className="form-divider" /><div className="form-label-row"><strong>Foto da placa</strong><span>opcional</span></div><label className="photo-picker" htmlFor="camera"><Camera size={21} /><span>{photoName || 'Tirar foto'}</span></label><input className="visually-hidden" id="camera" type="file" accept="image/*" capture="environment" onChange={(e) => void choosePhoto(e.target.files?.[0])} /><label className="photo-picker" htmlFor="gallery"><span>Escolher da galeria</span></label><input className="visually-hidden" id="gallery" type="file" accept="image/*" onChange={(e) => void choosePhoto(e.target.files?.[0])} />
+      {photo && <><button type="button" className="inline-action" onClick={() => { setPhoto(null); setPhotoName(''); setCandidates([]) }}>Remover foto</button><button type="button" className="ocr-button" onClick={runOcr}><Sparkles size={17} /> Ler valores da foto</button></>}
       {ocrStatus && <p className="hint" role="status">{ocrStatus}</p>}
       {candidates.length > 0 && <div className="candidates">{candidates.map((value) => <div key={value}><strong>R$ {value.toFixed(2).replace('.', ',')}</strong><button type="button" onClick={() => setValues({ ...values, gasoline: value.toFixed(2).replace('.', ',') })}>Usar na gasolina</button><button type="button" onClick={() => setValues({ ...values, ethanol: value.toFixed(2).replace('.', ',') })}>Usar no etanol</button></div>)}</div>}
+      <div className="form-divider" /><div className="form-label-row"><strong>Preços por litro</strong><span>Preencha os que souber</span></div>
+      {fuelOptions.map(({ value, label }) => <div className="price-field" key={value}><label htmlFor={value}>{label}</label><div><span>R$</span><input id={value} inputMode="decimal" autoComplete="off" placeholder="0,00" value={values[value]} onChange={(e) => setValues({ ...values, [value]: e.target.value })} /></div></div>)}
       <p className="hint">Confira os valores antes de salvar. A leitura da foto pode errar.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-button submit-button" disabled={busy || stations.length === 0} type="submit">{busy ? 'Salvando…' : 'Salvar preços'}</button>

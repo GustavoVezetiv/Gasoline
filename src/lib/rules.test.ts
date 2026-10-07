@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { haversineKm } from './geo'
-import { estimatedTotal, freshness, latestReports, parsePrice, sortStations } from './pricing'
+import { estimatedTotal, freshness, historyForPeriod, latestReports, parsePrice, priceStats, sortStations, stationsForFuel } from './pricing'
 import { priceCandidates } from './ocr'
 import type { PriceReport } from './types'
 
@@ -18,6 +18,18 @@ describe('price reports', () => {
     const latest = latestReports([report('new', '2026-10-06T10:00:00Z'), report('ethanol', '2026-10-01T10:00:00Z', 'ethanol'), report('old', '2026-10-01T10:00:00Z')])
     expect(latest.get('s1:gasoline')?.id).toBe('new')
     expect(latest.get('s1:ethanol')?.id).toBe('ethanol')
+  })
+  it('uses the selected fuel when preparing station rows', () => {
+    const stations = [{ id: 's1', name: 'A', address: null, latitude: 0, longitude: 0, active: true }]
+    const reports = [report('gas', '2026-10-01T10:00:00Z'), { ...report('eth', '2026-10-02T10:00:00Z', 'ethanol'), price: 3.89 }]
+    expect(stationsForFuel(stations, reports, 'ethanol')[0].report?.id).toBe('eth')
+    expect(stationsForFuel(stations, reports, 'diesel')[0].report).toBeNull()
+  })
+  it('filters history by station, fuel, and selected period', () => {
+    const reports = [report('old', '2026-07-01T10:00:00Z'), report('recent', '2026-10-01T10:00:00Z'), report('ethanol', '2026-10-02T10:00:00Z', 'ethanol'), { ...report('other', '2026-10-03T10:00:00Z'), station_id: 's2' }]
+    const history = historyForPeriod(reports, 's1', 'gasoline', 30, new Date('2026-10-06T00:00:00Z'))
+    expect(history.map((item) => item.id)).toEqual(['recent'])
+    expect(priceStats(history)).toEqual({ current: 5.8, min: 5.8, max: 5.8, variation: 0 })
   })
   it('labels freshness without relying on color', () => {
     const now = new Date('2026-10-06T12:00:00Z')

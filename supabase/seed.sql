@@ -8,18 +8,23 @@ insert into public.stations (id, name, address, latitude, longitude) values
 ('10000000-0000-4000-8000-000000000006', 'Posto Estação', 'Rua da Estação, 44', -15.5942, -56.1057)
 on conflict (id) do nothing;
 
--- Após criar o primeiro usuário local, execute este arquivo de novo para incluir preços de exemplo.
+-- Após criar o primeiro usuário local, execute este arquivo de novo para incluir histórico dos quatro combustíveis.
 do $$
 declare demo_user uuid;
 begin
   select id into demo_user from public.profiles order by created_at limit 1;
-  if demo_user is not null and not exists (select 1 from public.price_reports where station_id = '10000000-0000-4000-8000-000000000001') then
-    insert into public.price_reports (station_id, user_id, fuel_type, price, created_at) values
-    ('10000000-0000-4000-8000-000000000001', demo_user, 'gasoline', 5.89, now() - interval '2 hours'),
-    ('10000000-0000-4000-8000-000000000002', demo_user, 'gasoline', 5.79, now() - interval '1 day'),
-    ('10000000-0000-4000-8000-000000000003', demo_user, 'gasoline', 5.95, now() - interval '5 days'),
-    ('10000000-0000-4000-8000-000000000004', demo_user, 'gasoline', 5.84, now() - interval '8 hours'),
-    ('10000000-0000-4000-8000-000000000005', demo_user, 'gasoline', 5.99, now() - interval '9 days'),
-    ('10000000-0000-4000-8000-000000000006', demo_user, 'gasoline', 5.82, now() - interval '3 days');
+  if demo_user is not null and not exists (select 1 from public.price_reports where user_id = demo_user) then
+    insert into public.price_reports (station_id, user_id, fuel_type, price, created_at)
+    select station.id, demo_user, fuel.fuel_type,
+      round((fuel.base_price + ((right(station.id, 1)::integer - 3) * 0.018) + (sample.step * 0.012))::numeric, 3),
+      now() - ((5 - sample.step) * interval '14 days') - (right(station.id, 1)::integer * interval '2 hours')
+    from public.stations station
+    cross join (values
+      ('gasoline'::public.fuel_type, 5.79::numeric),
+      ('ethanol'::public.fuel_type, 3.89::numeric),
+      ('diesel'::public.fuel_type, 5.99::numeric),
+      ('diesel_s10'::public.fuel_type, 6.09::numeric)
+    ) as fuel(fuel_type, base_price)
+    cross join generate_series(0, 5) as sample(step);
   end if;
 end $$;

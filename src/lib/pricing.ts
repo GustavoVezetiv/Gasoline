@@ -1,4 +1,4 @@
-import type { PriceReport, StationWithPrice } from './types'
+import type { FuelType, PriceReport, Station, StationWithPrice } from './types'
 
 export function latestReports(reports: PriceReport[]): Map<string, PriceReport> {
   const result = new Map<string, PriceReport>()
@@ -7,6 +7,26 @@ export function latestReports(reports: PriceReport[]): Map<string, PriceReport> 
     if (!result.has(key) || new Date(report.created_at).getTime() > new Date(result.get(key)!.created_at).getTime()) result.set(key, report)
   }
   return result
+}
+
+export function stationsForFuel(stations: Station[], reports: PriceReport[], fuel: FuelType): StationWithPrice[] {
+  const latest = latestReports(reports)
+  return stations.map((station) => ({ ...station, report: latest.get(`${station.id}:${fuel}`) ?? null }))
+}
+
+export function historyForPeriod(reports: PriceReport[], stationId: string, fuel: FuelType, days: number, now = new Date()): PriceReport[] {
+  const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000
+  return reports
+    .filter((report) => report.station_id === stationId && report.fuel_type === fuel && new Date(report.created_at).getTime() >= cutoff)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+}
+
+export function priceStats(reports: PriceReport[]): { current: number; min: number; max: number; variation: number } | null {
+  if (!reports.length) return null
+  const prices = reports.map((report) => report.price)
+  const current = reports[reports.length - 1].price
+  const first = reports[0].price
+  return { current, min: Math.min(...prices), max: Math.max(...prices), variation: current - first }
 }
 
 export function freshness(iso: string, now = new Date()): { label: string; level: 'fresh' | 'okay' | 'old' | 'stale' } {
