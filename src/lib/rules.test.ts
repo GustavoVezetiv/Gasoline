@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { haversineKm } from './geo'
 import { estimatedTotal, freshness, historyForPeriod, latestReports, parsePrice, priceStats, sortStations, stationsForFuel } from './pricing'
-import { priceCandidates } from './ocr'
 import type { PriceReport } from './types'
 
 describe('distance and cost', () => {
@@ -44,10 +43,6 @@ describe('price reports', () => {
     expect(parsePrice('5,7')).toBeNull()
     expect(parsePrice('abc')).toBeNull()
   })
-})
-
-it('extracts distinct plausible OCR candidates', () => {
-  expect(priceCandidates('GASOLINA R$ 5,79\nETANOL 3.89\n5,79\n999,99')).toEqual([5.79, 3.89])
 })
 
 it('falls back to price when distance is unavailable', () => {

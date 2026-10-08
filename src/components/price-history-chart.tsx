@@ -3,7 +3,7 @@
 import { priceStats } from '@/lib/pricing'
 import type { PriceReport } from '@/lib/types'
 
-const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 3 }).format(value)
 
 export function PriceHistoryChart({ reports, emptyLabel = 'Ainda não há histórico para este filtro.' }: { reports: PriceReport[]; emptyLabel?: string }) {
   const stats = priceStats(reports)

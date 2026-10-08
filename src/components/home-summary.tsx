@@ -11,7 +11,7 @@ import { fuelLabel } from '@/lib/fuels'
 import { historyForPeriod, stationsForFuel } from '@/lib/pricing'
 import type { PriceReport, Profile, Station } from '@/lib/types'
 
-const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 3 }).format(value)
 const periods = [7, 30, 90] as const
 
 export function HomeSummary({ stations, latestPrices, history, profile }: { stations: Station[]; latestPrices: PriceReport[]; history: PriceReport[]; profile: Profile | null }) {
